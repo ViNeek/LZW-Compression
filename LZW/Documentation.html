@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Untitled Document</title>
+<style type="text/css">
+<!--
+body,td,th {
+	font-family: MS Serif, New York, serif;
+	font-size: xx-large;
+}
+body p {
+	font-family: Verdana, Geneva, sans-serif;
+}
+.entry {
+	font-family: Verdana, Geneva, sans-serif;
+}
+.entry {
+	font-family: Verdana, Geneva, sans-serif;
+}
+.entry {
+	font-family: Verdana, Geneva, sans-serif;
+}
+.entry {
+	font-family: Verdana, Geneva, sans-serif;
+}
+-->
+</style></head>
+
+<body>
+<h3 align="center"><u><strong>LZW Implementation</strong></u></h3>
+<p>&nbsp;</p>
+<p><strong><u>1.1 Description</u></strong></p>
+<p>The main goal of this LZW implementation is to be fast while  achieving good compression percentage. As far as speed is concerned, the  programming language of choice was C and all the data structures used for both  the decoder and encoder where chosen to be Cache-Conscious. For better  compression, a variable bit-size [Input/Output]Streamer was implemented that  helps reduce the size of the compressed file considerably.</p>
+<p><strong><u>1.2 I/O Handling</u></strong></p>
+<p>The big hit in memory consumption comes from the fact that  the implementation maps everything into RAM. At first, the entire file is  loaded into memory before the encoding/decoding starts, then the inBuffer is  traversed as described in the LZW algorithm while any output is directed to an  outBuffer. Lastly, the outBuffer is stored in a file with a single Output  Operation. To compensate, the Data Structures used(see below), take advantage  of the algorithm' s nature to save a lot of memory in the Dictionary.</p>
+<p><strong><u>1.3 Encoder</u></strong></p>
+<p>The Data Structure used for the encoder is a Cache-Conscious  Hash Table which borrows heavily from the one described in [1]. In order to  take advantage of cache-hits, the data at each bucket of the hash table are  stored in contiguous space so that they are accessed very fast. This makes sure  that even if collisions happen during inserting into the hash table, data  locality will help compensate for the linear search in the bucket. However to  make sure that the load factor does not become very large we make sure that the  hash table is of adequate size also (64MB). In order to save space and time,  the strings are not stored as sequences of bytes. The implementation takes  advantage of the fact that each string is a concatenation of one previously  inserted into the dictionary and a character. Therefore, the table only stores  the location of the previous string(that is somewhere in the table) and the  ending symbol. This pair of previousIndex and currentSymbol is unique for every  string which means it can also be used as the key to be hashed. That way we do  not have to use a StringHash function but a simple and fast generic one that  hashes the previous index and the current symbol. That way a lot of memory is  saved. Combined with the bitwise streamer this implementation of the encoder  highly compresses files, sometimes, better than WinRAR (see large files below).</p>
+<p><strong><u>1.4 Decoder</u></strong></p>
+<p>The dictionary for the decoder is a simple array that is resized according the size of the input. It also takes advantage of previous strings stored in the array and saves large amounts of memory. Again, due to data locality, operations are really fast.</p>
+<p><strong><u>1.5 Results</u></strong></p>
+<p>The implementation was tested with a variety of input files which showcase both its weaknesses and its strengths. </p>
+<table width="1669" border="1">
+  <tr>
+    <th scope="row"><div align="center"><span class="entry"><strong><code>File Name</code></strong></span></div></th>
+    <td><div align="center"><span class="entry"><strong><code>Size</code></strong></span></div></td>
+    <td class="entry"><div align="center"><span class="entry"><strong><code>Compression Time</code></strong></span></div></td>
+    <td class="entry"><p align="center"><span class="entry"><strong><code>Decompression Time</code></strong></span></p></td>
+    <td class="entry"><div align="center"><span class="entry"><strong><code>Compressed Size</code></strong></span></div></td>
+    <td class="entry"><div align="center"><span class="entry"><strong><code>% of original</code></strong></span></div></td>
+  </tr>
+  <tr>
+    <th scope="row"><div align="center"><span class="entry"><strong><code>j2se.txt</code></strong></span></div></th>
+    <td><div align="center"><span class="entry"><strong><code>11.7MB</code></strong></span></div></td>
+    <td class="entry"><div align="center"><span class="entry"><strong><code>0.7secs</code></strong></span></div></td>
+    <td class="entry"><div align="center"><span class="entry"><strong><code>0.2secs</code></strong></span></div></td>
+    <td class="entry"><div align="center"><span class="entry"><strong><code>3.2MB</code></strong></span></div></td>
+    <td class="entry"><div align="center"><span class="entry"><strong><code>29%</code></strong></span></div></td>
+  </tr>
+  <tr>
+    <th width="226" scope="row"><div align="center"><span class="entry"><strong><code>random-10MB.txt</code></strong></span></div></th>
+    <td width="175"><div align="center"><span class="entry"><strong><code>10.2MB</code></strong></span></div></td>
+    <td width="271" class="entry"><div align="center"><span class="entry"><strong><code>1.1secs</code></strong></span></div></td>
+    <td width="321" class="entry"><p align="center"><span class="entry"><strong><code>0.3secs</code></strong></span></p></td>
+    <td width="318" class="entry"><div align="center"><span class="entry"><strong><code>10.4MB</code></strong></span></div></td>
+    <td width="318" class="entry"><div align="center"><span class="entry"><strong><code>101%</code></strong></span></div></td>
+  </tr>
+  <tr>
+    <th scope="row"><div align="center"><span class="entry"><strong><code>urls_1</code></strong></span></div></th>
+    <td><div align="center"><span class="entry"><strong><code>311MB</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>34.184secs</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>17.173secs</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>50MB</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>16%</code></strong></span></div></td>
+  </tr>
+  <tr>
+    <th scope="row"><div align="center"><span class="entry"><strong><code>util.txt</code></strong></span></div></th>
+    <td><div align="center"><span class="entry"><strong><code>2.1MB</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>0.144secs</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>0.053secs</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>650KB</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>30%</code></strong></span></div></td>
+  </tr>
+  <tr>
+    <th scope="row"><div align="center"><span class="entry"><strong><code>genome_1</code></strong></span></div></th>
+    <td><div align="center"><span class="entry"><strong><code>308MB</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>31.595secs</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>13.258secs</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>85.695KB</code></strong></span></div></td>
+    <td><div align="center"><span class="entry"><strong><code>27%</code></strong></span></div></td>
+  </tr>
+</table>
+<p>The above results show that entropy encoding is not a good choice for files with random distribution of data; therefore the LZW Implementation cannot even reduce the size of the file. But the algorithm can achieve great compression for data that are not random like urls, genome strings and source code.</p>
+<p>&nbsp;</p>
+<p><strong><u>1.6 References</u></strong></p>
+<p>A series of test files were taken from the link below</p>
+<p><a href="http://www.naskitis.com/">http://www.naskitis.com/</a></p>
+<p>&nbsp;</p>
+<p>[1]<a href="http://www.naskitis.com/naskitis-spire05.pdf">Cache-Conscious Collision Resolution</a>, 2005, Nikolas Askitis and Justin Zobel</p>
+<p><strong>
+  <!--Ludacris
+ -->
+</strong>[2]<a href="http://crpit.com/confpapers/CRPITV91Askitis.pdf">Fast and Compact Hash Tables for Integer Keys</a>, 2005, Nikolas Askitis</p>
+<p>[3]MurmurHash, 2009, Austin Appleby, <a href="https://sites.google.com/site/murmurhash/">https://sites.google.com/site/murmurhash/</a></p>
+</body>
+</html>
